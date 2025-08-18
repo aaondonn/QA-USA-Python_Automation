@@ -13,7 +13,7 @@ class TestUrbanRoutes:
             print("Cannot connect to Urban Routes. Check the server is on and still running")
 
 # Add in S8
-def test_set_route(self):
+def test_set_route():
     print("function created for set route")
     pass
 
