@@ -1,5 +1,5 @@
 from selenium import webdriver
-
+from selenium.webdriver.chrome.options import Options
 from data import CARD_NUMBER, CARD_CODE
 from pages import UrbanRoutesPage
 import data
@@ -20,65 +20,70 @@ class TestUrbanRoutes:
         capabilities = DesiredCapabilities.CHROME
         capabilities["goog:loggingPrefs"] = {'performance': 'ALL'}
 
-        self.driver = webdriver.Chrome()
+        options = Options()
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--headless")
+        self.driver = webdriver.Chrome(options=options)
         self.driver.get(data.URBAN_ROUTES_URL)
         self.driver.implicitly_wait(10)
 
     def test_set_route(self):
         """Tests that the route can be set successfully."""
         routes_page = UrbanRoutesPage(self.driver)
-        routes_page.set_route("East 2nd Street, 601", "1300 1st St")
-        assert routes_page.get_ADDRESS_FROM_value() == "East 2nd Street, 601"
-        assert routes_page.get_field_to_value() == "1300 1st St"
+        routes_page.set_route(data.ADDRESS_FROM, data.ADDRESS_TO)
+        assert routes_page.get_ADDRESS_FROM_value() == data.ADDRESS_FROM
+        assert routes_page.get_field_to_value() == data.ADDRESS_TO
 
     def test_select_plan(self):
         """Tests that the 'Supportive' plan can be selected."""
         routes_page = UrbanRoutesPage(self.driver)
         # Prerequisite: Set the route to see the plans
-        routes_page.set_route("East 2nd Street, 601", "1300 1st St")
-        routes_page.select_supportive_plan
+        routes_page.set_route(data.ADDRESS_FROM, data.ADDRESS_TO)
+        routes_page.select_supportive_plan()
+        assert routes_page.is_supportive_plan_selected()
+
 
     def test_fill_phone_number(self):
         """Tests the full phone number entry and confirmation flow."""
         routes_page = UrbanRoutesPage(self.driver)
         # Prerequisites: Set route and select a plan
-        routes_page.set_route("East 2nd Street, 601", "1300 1st St")
+        routes_page.set_route(data.ADDRESS_FROM, data.ADDRESS_TO)
         routes_page.select_supportive_plan()
 
-        routes_page.add_phone_number("+1 123 123 12 12")
+        routes_page.add_phone_number(data.PHONE_NUMBER)
         self.driver.implicitly_wait(10)
         code = helpers.retrieve_phone_code(self.driver)
         routes_page.enter_sms_code(code)
-        assert routes_page.get_confirmed_phone_number() == "+1 123 123 12 12"
+        assert routes_page.get_confirmed_phone_number() == data.PHONE_NUMBER
 
     def test_fill_card(self):
         """Tests adding a credit card as a payment method."""
-        routes_pages = UrbanRoutesPage(self.driver)
+        routes_page = UrbanRoutesPage(self.driver)
         # Prerequisites: Set route and select a plan
-        routes_pages.set_route("East 2nd Street, 601", "1300 1st St")
-        routes_pages.select_supportive_plan()
+        routes_page.set_route(data.ADDRESS_FROM, data.ADDRESS_TO)
+        routes_page.select_supportive_plan()
 
         # Pass the card details as strings
-        routes_pages.add_credit_card("1234567891011121", "123")
+        routes_page.add_credit_card(data.CARD_NUMBER, data.CARD_CODE)
 
-        assert routes_pages.is_card_linked(), "Card was not linked successfully"
+        assert routes_page.is_card_linked(), "Card was not linked successfully"
 
     def test_comment_for_driver(self):
         """Tests adding a message for the driver."""
         routes_page = UrbanRoutesPage(self.driver)
         # Prerequisites: Set route and select a plan
-        routes_page.set_route("East 2nd Street, 601", "1300 1st St")
+        routes_page.set_route(data.ADDRESS_FROM, data.ADDRESS_TO)
         routes_page.select_supportive_plan()
 
-        comment = "Please meet at the main entrance."
-        routes_page.add_comment(comment)
-        assert routes_page.get_comment_text() == comment
+        routes_page.add_comment(data.MESSAGE_FOR_DRIVER)
+        assert routes_page.get_comment_text() == data.MESSAGE_FOR_DRIVER
 
     def test_order_blanket_and_handkerchiefs(self):
         """Tests selecting the 'Blanket and handkerchiefs' extra."""
         routes_page = UrbanRoutesPage(self.driver)
         # Prerequisites: Set route and select a plan
-        routes_page.set_route("East 2nd Street, 601", "1300 1st St")
+        routes_page.set_route(data.ADDRESS_FROM, data.ADDRESS_TO)
         routes_page.select_supportive_plan()
 
         routes_page.select_blanket_and_handkerchiefs()
@@ -88,7 +93,7 @@ class TestUrbanRoutes:
         """Tests ordering two ice creams."""
         routes_page = UrbanRoutesPage(self.driver)
         # Prerequisites: Set route and select a plan
-        routes_page.set_route("East 2nd Street, 601", "1300 1st St")
+        routes_page.set_route(data.ADDRESS_FROM, data.ADDRESS_TO)
         routes_page.select_supportive_plan()
 
         routes_page.order_ice_creams(count=2)
@@ -98,12 +103,12 @@ class TestUrbanRoutes:
         """Tests the final step of ordering a taxi and verifying the modal appears."""
         routes_page = UrbanRoutesPage(self.driver)
         # Perform all steps required to get to the final order button
-        routes_page.set_route("East 2nd Street, 601", "1300 1st St")
+        routes_page.set_route(data.ADDRESS_FROM, data.ADDRESS_TO)
         routes_page.select_supportive_plan()
-        routes_page.add_phone_number("123-456-7890")
+        routes_page.add_phone_number(data.PHONE_NUMBER)
         code = helpers.retrieve_phone_code(self.driver)
         routes_page.enter_sms_code(code)
-        routes_page.add_credit_card("1234567891011121", "123")
+        routes_page.add_credit_card(data.CARD_NUMBER, data.CARD_CODE)
         routes_page.add_comment("Order for the final test")
 
         routes_page.click_order_button()
