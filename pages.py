@@ -24,9 +24,9 @@ class UrbanRoutesPage:
     PAYMENT_METHOD_LOCATOR = (By.CLASS_NAME, 'pp-value-text')
     ADD_CARD_LINK_LOCATOR = (By.CLASS_NAME, 'pp-plus')
     CARD_NUMBER_INPUT_LOCATOR = (By.XPATH, '//*[@id="number"]')
-    CARD_CVV_INPUT_LOCATOR = (By.XPATH, "//input[@id='code']")
-    LINK_CARD_BUTTON_LOCATOR = (By.XPATH, "//button[text()='Link']")
-    PAYMENT_MODAL_CLOSE_LOCATOR = (By.XPATH, "//div[@class='payment-picker open']//button[@class='close-button section-close']")
+    CARD_CVV_INPUT_LOCATOR = (By.XPATH, "//div[contains(@class, 'payment-picker')]//input[@id='code']")
+    LINK_CARD_BUTTON_LOCATOR = (By.XPATH, "//div[contains(@class, 'payment-picker')]//button[text()='Link']")
+    PAYMENT_MODAL_CLOSE_LOCATOR = (By.XPATH, "//div[contains(@class, 'payment-picker')]//button[@class='close-button section-close']")
     COMMENT_FIELD_LOCATOR = (By.ID, 'comment')
     BLANKET_SWITCH_LOCATOR = (By.XPATH, "//div[label[text()='Blanket and handkerchiefs']]//span[@class='switch-input']")
     BLANKET_CHECKBOX_LOCATOR = (By.XPATH, "//div[label[text()='Blanket and handkerchiefs']]//input")
@@ -41,9 +41,6 @@ class UrbanRoutesPage:
 
     # --- Methods ---
     def set_route(self, from_address, to_address):
-        self.driver.get(data.URBAN_ROUTES_URL)
-        routes_page = UrbanRoutesPage(self.driver)
-        routes_page.set_route(data.ADDRESS_FROM, data.ADDRESS_TO)
         self.driver.find_element(*self.FROM_LOCATOR).send_keys(from_address)
         self.driver.find_element(*self.TO_LOCATOR).send_keys(to_address)
 
@@ -76,36 +73,21 @@ class UrbanRoutesPage:
 
     def add_credit_card(self, card_number, cvv):
         self.driver.find_element(*self.PAYMENT_METHOD_LOCATOR).click()
-
-        # Wait for the element and click it in one action
         self.wait.until(EC.element_to_be_clickable(self.ADD_CARD_LINK_LOCATOR)).click()
 
-        # Wait for the modal to fully load
         card_number_field = self.wait.until(EC.element_to_be_clickable(self.CARD_NUMBER_INPUT_LOCATOR))
+        card_number_field.send_keys(card_number)
+
         card_cvv_field = self.wait.until(EC.element_to_be_clickable(self.CARD_CVV_INPUT_LOCATOR))
+        card_cvv_field.send_keys(cvv)
 
-        # Debug: Check if elements are found
-        print(f"Card number field found: {card_number_field}")
-        print(f"CVV field found: {card_cvv_field}")
-        print(f"Trying to enter: {card_number} and {cvv}")
+        # Click the link button
+        self.driver.find_element(*self.LINK_CARD_BUTTON_LOCATOR).click()
 
-        # Click to focus, clear, then enter data
-        card_number_field.click()
-        card_number_field.clear()
-        card_number_field.send_keys(str(card_number))
-
-        card_cvv_field.click()
-        card_cvv_field.clear()
-        card_cvv_field.send_keys(str(cvv))
-
-        # Use TAB to change focus
-        card_cvv_field.send_keys(Keys.TAB)
-
-        # Wait for Link button to be clickable and click it
-        self.wait.until(EC.element_to_be_clickable(self.LINK_CARD_BUTTON_LOCATOR)).click()
 
     def is_card_linked(self):
-        return self.wait.until(EC.invisibility_of_element_located(self.PAYMENT_MODAL_CLOSE_LOCATOR))
+        # Wait for the payment method text to be updated with the card number
+        return self.wait.until(EC.text_to_be_present_in_element(self.PAYMENT_METHOD_LOCATOR, data.CARD_NUMBER))
 
     def add_comment(self, comment_text):
         self.driver.find_element(*self.COMMENT_FIELD_LOCATOR).send_keys(comment_text)
